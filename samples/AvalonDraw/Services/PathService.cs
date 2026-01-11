@@ -148,7 +148,7 @@ public class PathService
             return;
         var seg = _points[_activeIndex].Segment;
         _path.PathData.Remove(seg);
-        _points.RemoveAt(_activeIndex);
+        _points.RemoveAll(p => ReferenceEquals(p.Segment, seg));
         _activeIndex = -1;
         _path.OnPathUpdated();
     }
@@ -385,35 +385,97 @@ public class PathService
     public static void AddPathSegments(SK.SKPath path, SvgPathSegmentList segments)
     {
         var cur = new SK.SKPoint();
+        var start = new SK.SKPoint();
+        bool haveStart = false;
+        SK.SKPoint? lastCubicControl = null;
+        SK.SKPoint? lastQuadControl = null;
+
+        static bool IsNaN(System.Drawing.PointF point)
+            => float.IsNaN(point.X) || float.IsNaN(point.Y);
+
+        static SK.SKPoint ToAbs(System.Drawing.PointF point, bool isRelative, SK.SKPoint current)
+        {
+            var x = float.IsNaN(point.X) ? current.X : (isRelative ? current.X + point.X : point.X);
+            var y = float.IsNaN(point.Y) ? current.Y : (isRelative ? current.Y + point.Y : point.Y);
+            return new SK.SKPoint(x, y);
+        }
+
+        static SK.SKPoint ToAbsControl(System.Drawing.PointF point, bool isRelative, SK.SKPoint current)
+        {
+            if (IsNaN(point))
+                return new SK.SKPoint(float.NaN, float.NaN);
+            var x = isRelative ? current.X + point.X : point.X;
+            var y = isRelative ? current.Y + point.Y : point.Y;
+            return new SK.SKPoint(x, y);
+        }
+
+        static SK.SKPoint Reflect(SK.SKPoint point, SK.SKPoint mirror)
+        {
+            var dx = Math.Abs(mirror.X - point.X);
+            var dy = Math.Abs(mirror.Y - point.Y);
+            var x = mirror.X + (mirror.X >= point.X ? dx : -dx);
+            var y = mirror.Y + (mirror.Y >= point.Y ? dy : -dy);
+            return new SK.SKPoint(x, y);
+        }
+
         foreach (var seg in segments)
         {
             switch (seg)
             {
                 case SvgMoveToSegment mv:
-                    cur = new SK.SKPoint(mv.End.X, mv.End.Y);
+                    cur = ToAbs(mv.End, mv.IsRelative, cur);
                     path.MoveTo(cur);
+                    start = cur;
+                    haveStart = true;
+                    lastCubicControl = null;
+                    lastQuadControl = null;
                     break;
                 case SvgLineSegment ln:
-                    cur = new SK.SKPoint(ln.End.X, ln.End.Y);
+                    cur = ToAbs(ln.End, ln.IsRelative, cur);
                     path.LineTo(cur);
+                    lastCubicControl = null;
+                    lastQuadControl = null;
                     break;
                 case SvgCubicCurveSegment c:
-                    path.CubicTo(new SK.SKPoint(c.FirstControlPoint.X, c.FirstControlPoint.Y),
-                        new SK.SKPoint(c.SecondControlPoint.X, c.SecondControlPoint.Y),
-                        new SK.SKPoint(c.End.X, c.End.Y));
-                    cur = new SK.SKPoint(c.End.X, c.End.Y);
+                    var c1 = ToAbsControl(c.FirstControlPoint, c.IsRelative, cur);
+                    if (float.IsNaN(c1.X) || float.IsNaN(c1.Y))
+                        c1 = lastCubicControl.HasValue ? Reflect(lastCubicControl.Value, cur) : cur;
+                    var c2 = ToAbsControl(c.SecondControlPoint, c.IsRelative, cur);
+                    if (float.IsNaN(c2.X) || float.IsNaN(c2.Y))
+                        c2 = cur;
+                    var ce = ToAbs(c.End, c.IsRelative, cur);
+                    path.CubicTo(c1, c2, ce);
+                    cur = ce;
+                    lastCubicControl = c2;
+                    lastQuadControl = null;
                     break;
                 case SvgQuadraticCurveSegment q:
-                    path.QuadTo(new SK.SKPoint(q.ControlPoint.X, q.ControlPoint.Y),
-                        new SK.SKPoint(q.End.X, q.End.Y));
-                    cur = new SK.SKPoint(q.End.X, q.End.Y);
+                    var qc = ToAbsControl(q.ControlPoint, q.IsRelative, cur);
+                    if (float.IsNaN(qc.X) || float.IsNaN(qc.Y))
+                        qc = lastQuadControl.HasValue ? Reflect(lastQuadControl.Value, cur) : cur;
+                    var qe = ToAbs(q.End, q.IsRelative, cur);
+                    path.QuadTo(qc, qe);
+                    cur = qe;
+                    lastQuadControl = qc;
+                    lastCubicControl = null;
                     break;
                 case SvgArcSegment a:
-                    path.LineTo(a.End.X, a.End.Y);
-                    cur = new SK.SKPoint(a.End.X, a.End.Y);
+                    var ae = ToAbs(a.End, a.IsRelative, cur);
+                    var largeArc = a.Size == SvgArcSize.Large ? SK.SKPathArcSize.Large : SK.SKPathArcSize.Small;
+                    var sweep = a.Sweep == SvgArcSweep.Negative ? SK.SKPathDirection.CounterClockwise : SK.SKPathDirection.Clockwise;
+                    path.ArcTo(a.RadiusX, a.RadiusY, a.Angle, largeArc, sweep, ae.X, ae.Y);
+                    cur = ae;
+                    lastCubicControl = null;
+                    lastQuadControl = null;
                     break;
                 case SvgClosePathSegment _:
-                    path.Close();
+                    if (haveStart)
+                    {
+                        path.Close();
+                        cur = start;
+                    }
+                    lastCubicControl = null;
+                    lastQuadControl = null;
                     break;
             }
         }

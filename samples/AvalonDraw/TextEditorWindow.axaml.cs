@@ -26,8 +26,16 @@ public partial class TextEditorWindow : Window
         _wordBox = this.FindControl<TextBox>("WordBox");
 
         _editor.Text = text;
-        _fontFamilyBox.ItemsSource = FontManager.Current?.SystemFonts;
-        _fontFamilyBox.SelectedItem = fontFamily;
+        var fonts = FontManager.Current?.SystemFonts?
+            .Select(f => f.Name)
+            .Where(n => !string.IsNullOrWhiteSpace(n))
+            .Distinct()
+            .OrderBy(n => n)
+            .ToList() ?? new System.Collections.Generic.List<string>();
+        if (!string.IsNullOrWhiteSpace(fontFamily) && !fonts.Contains(fontFamily))
+            fonts.Insert(0, fontFamily);
+        _fontFamilyBox.ItemsSource = fonts;
+        _fontFamilyBox.SelectedItem = string.IsNullOrWhiteSpace(fontFamily) ? fonts.FirstOrDefault() : fontFamily;
         _fontWeightBox.ItemsSource = Enum.GetValues(typeof(FontWeight)).Cast<FontWeight>();
         _fontWeightBox.SelectedItem = ToFontWeight(weight);
         _letterBox.Text = letter.ToString();

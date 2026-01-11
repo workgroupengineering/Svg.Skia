@@ -541,10 +541,10 @@ public partial class MainWindow : Window
         {
             Filters = new()
             {
-                new FileDialogFilter { Name = "EPS", Extensions = { "eps" } },
+                new FileDialogFilter { Name = "XPS", Extensions = { "xps" } },
                 new FileDialogFilter { Name = "All", Extensions = { "*" } }
             },
-            DefaultExtension = "eps",
+            DefaultExtension = "xps",
         };
         var path = await dialog.ShowAsync(this);
         if (string.IsNullOrEmpty(path))
@@ -723,7 +723,7 @@ public partial class MainWindow : Window
 
         if ((_toolService.CurrentTool == Tool.Line || _toolService.CurrentTool == Tool.Rect || _toolService.CurrentTool == Tool.Circle || _toolService.CurrentTool == Tool.Ellipse ||
              _toolService.CurrentTool == Tool.Text || _toolService.CurrentTool == Tool.TextPath || _toolService.CurrentTool == Tool.TextArea ||
-             _toolService.CurrentTool == Tool.Symbol || _toolService.CurrentTool == Tool.Image ||
+             _toolService.CurrentTool == Tool.Symbol || _toolService.CurrentTool == Tool.Image || _toolService.CurrentTool == Tool.Freehand ||
              _toolService.CurrentTool == Tool.PathLine || _toolService.CurrentTool == Tool.PathCubic || _toolService.CurrentTool == Tool.PathQuadratic || _toolService.CurrentTool == Tool.PathArc || _toolService.CurrentTool == Tool.PathMove) &&
             e.GetCurrentPoint(SvgView).Properties.IsLeftButtonPressed)
         {
@@ -746,6 +746,11 @@ public partial class MainWindow : Window
                     LoadProperties(_newElement);
                     SvgView.InvalidateVisual();
                     _creating = true;
+                    if (_toolService.CurrentTool == Tool.Freehand)
+                    {
+                        _freehandPoints.Clear();
+                        _freehandPoints.Add(_newStart);
+                    }
                     e.Pointer.Capture(SvgView);
                     return;
                 }
@@ -810,6 +815,7 @@ public partial class MainWindow : Window
                 var idx = _pathService.HitPoint(new SK.SKPoint(pp.X, pp.Y), HandleSize, GetCanvasScale());
                 if (idx >= 0)
                 {
+                    SaveUndoState();
                     _pathService.ActivePoint = idx;
                     // start dragging path point
                     e.Pointer.Capture(SvgView);
@@ -821,6 +827,7 @@ public partial class MainWindow : Window
                 var idx = _selectionService.HitPolyPoint(_polyPoints, _polyMatrix, new SK.SKPoint(pp.X, pp.Y), GetCanvasScale());
                 if (idx >= 0)
                 {
+                    SaveUndoState();
                     _activePolyPoint = idx;
                     e.Pointer.Capture(SvgView);
                     return;
@@ -853,7 +860,6 @@ public partial class MainWindow : Window
                     var polyEl = hits.OfType<SvgPolygon>().FirstOrDefault();
                     if (polyEl is not null && _document is { })
                     {
-                        SaveUndoState();
                         var drawable = skSvg.HitTestDrawables(pp).FirstOrDefault(d => d.Element == polyEl);
                         if (drawable is { })
                         {
@@ -869,7 +875,6 @@ public partial class MainWindow : Window
                     var polyEl = hits.OfType<SvgPolyline>().FirstOrDefault();
                     if (polyEl is not null && _document is { })
                     {
-                        SaveUndoState();
                         var drawable = skSvg.HitTestDrawables(pp).FirstOrDefault(d => d.Element == polyEl);
                         if (drawable is { })
                         {
@@ -940,6 +945,8 @@ public partial class MainWindow : Window
             var cur = new Shim.SKPoint(cp.X, cp.Y);
             if (_toolService.CurrentTool == Tool.Freehand)
             {
+                if (_freehandPoints.Count == 0)
+                    _freehandPoints.Add(cur);
                 var last = _freehandPoints[^1];
                 if (Math.Abs(last.X - cur.X) > DragThreshold || Math.Abs(last.Y - cur.Y) > DragThreshold)
                 {
@@ -1301,14 +1308,12 @@ public partial class MainWindow : Window
             _isDragging = false;
             if (_multiDragInfos is { })
             {
-                SaveUndoState();
                 if (_multiSelected.Count > 0)
                     LoadProperties(_multiSelected[0]);
                 _multiDragInfos = null;
             }
             else if (_dragElement is { })
             {
-                SaveUndoState();
                 LoadProperties(_dragElement);
             }
         }
@@ -1344,7 +1349,6 @@ public partial class MainWindow : Window
             _isResizing = false;
             if (_resizeElement is { })
             {
-                SaveUndoState();
                 LoadProperties(_resizeElement);
             }
         }
@@ -1353,7 +1357,6 @@ public partial class MainWindow : Window
             _isSkewing = false;
             if (_resizeElement is { })
             {
-                SaveUndoState();
                 LoadProperties(_resizeElement);
             }
         }
@@ -1362,7 +1365,6 @@ public partial class MainWindow : Window
             _pathService.ActivePoint = -1;
             if (_pathService.IsEditing && _pathService.EditPath is { })
             {
-                SaveUndoState();
                 LoadProperties(_pathService.EditPath);
             }
         }
@@ -1371,7 +1373,6 @@ public partial class MainWindow : Window
             _activePolyPoint = -1;
             if (_polyEditing && _editPolyElement is { })
             {
-                SaveUndoState();
                 LoadProperties(_editPolyElement);
             }
         }
@@ -1380,7 +1381,6 @@ public partial class MainWindow : Window
             _isRotating = false;
             if (_rotateElement is { })
             {
-                SaveUndoState();
                 LoadProperties(_rotateElement);
             }
         }
@@ -1809,7 +1809,10 @@ public partial class MainWindow : Window
             if (_toolService.CurrentTool == Tool.PathSelect && _selectedElement is SvgPath path && _selectedDrawable is { })
             {
                 if (!_pathService.IsEditing || _pathService.EditPath != path)
+                {
+                    SaveUndoState();
                     _pathService.Start(path, _selectedDrawable!);
+                }
             }
             else if (_toolService.CurrentTool == Tool.PolygonSelect && _selectedElement is SvgPolygon pg && _selectedDrawable is { })
             {
@@ -2457,15 +2460,17 @@ public partial class MainWindow : Window
         if (e.AddedItems.Count > 0 && e.AddedItems[0] is SymbolService.SymbolEntry info)
         {
             _selectedSymbol = info;
-            if (_selectedSvgElement is SvgVisualElement ve)
+            if (_selectedSvgElement is SvgUse use)
             {
+                if (string.IsNullOrEmpty(info.Symbol.ID))
+                    return;
                 SaveUndoState();
-                // TODO: info.Apply(ve);
+                info.Apply(use);
                 SvgView.SkSvg!.FromSvgDocument(_document);
                 UpdateSelectedDrawable();
                 SaveExpandedNodes();
                 BuildTree();
-                SelectNodeFromElement(ve);
+                SelectNodeFromElement(use);
                 SvgView.InvalidateVisual();
             }
         }
@@ -2510,7 +2515,10 @@ public partial class MainWindow : Window
         if (_selectedElement is SvgPath path && _selectedDrawable is { })
         {
             if (!_pathService.IsEditing || _pathService.EditPath != path)
+            {
+                SaveUndoState();
                 _pathService.Start(path, _selectedDrawable);
+            }
             SvgView.InvalidateVisual();
         }
     }
@@ -3429,7 +3437,13 @@ public partial class MainWindow : Window
         SaveUndoState();
 
         var clip = CreateClipPath(second, clipId);
-        first.Children.Add(clip);
+        var defs = _document.Children.OfType<SvgDefinitionList>().FirstOrDefault();
+        if (defs is null)
+        {
+            defs = new SvgDefinitionList();
+            _document.Children.Insert(0, defs);
+        }
+        defs.Children.Add(clip);
         first.ClipPath = new Uri($"#{clipId}", UriKind.Relative);
 
         _multiSelected.Clear();

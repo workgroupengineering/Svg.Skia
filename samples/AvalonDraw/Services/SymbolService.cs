@@ -1,3 +1,4 @@
+using System;
 using System.Collections.ObjectModel;
 using System.Linq;
 using Svg;
@@ -15,6 +16,18 @@ public class SymbolService
         {
             Symbol = symbol;
             Name = name;
+        }
+
+        public bool Apply(SvgVisualElement element)
+        {
+            if (string.IsNullOrEmpty(Symbol.ID))
+                return false;
+            if (element is SvgUse use)
+            {
+                use.ReferencedElement = new Uri($"#{Symbol.ID}", UriKind.Relative);
+                return true;
+            }
+            return false;
         }
 
         public override string ToString() => Name;
