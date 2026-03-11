@@ -23,4 +23,8 @@
     <PackageReference Include="Avalonia.Headless.XUnit" />
   </ItemGroup>
 
+  <ItemGroup>
+    <AvaloniaResource Include="Assets\embedded-test.svg" />
+  </ItemGroup>
+
 </Project>

@@ -38,6 +38,8 @@ namespace Svg.Editor.Skia.Avalonia;
 
 public partial class SvgEditorWorkspace : UserControl
 {
+    private const string DefaultWorkspaceTitlePrefix = "SVG Editor";
+
     private struct DragInfo
     {
         public SvgVisualElement Element;
@@ -202,6 +204,7 @@ public partial class SvgEditorWorkspace : UserControl
     private readonly SelectionService _selectionService = new();
     private readonly SvgEditorOverlayRenderer _overlayRenderer;
     private readonly SvgEditorInteractionController _interactionController;
+    private string _workspaceTitlePrefix = DefaultWorkspaceTitlePrefix;
 
     private bool _polyEditing;
     private SvgVisualElement? _editPolyElement;
@@ -227,6 +230,21 @@ public partial class SvgEditorWorkspace : UserControl
     public SvgDocument? Document => Session.Document;
     public string? CurrentFile => Session.CurrentFile;
     public SvgEditorSurface Surface => SvgView;
+    public string WorkspaceTitlePrefix
+    {
+        get => _workspaceTitlePrefix;
+        set
+        {
+            var normalized = string.IsNullOrWhiteSpace(value) ? DefaultWorkspaceTitlePrefix : value;
+            if (string.Equals(_workspaceTitlePrefix, normalized, StringComparison.Ordinal))
+                return;
+
+            _workspaceTitlePrefix = normalized;
+            UpdateTitle();
+        }
+    }
+
+    public Assembly? ResourceAssembly { get; set; }
     public Func<SvgDocument, Task>? PreviewRequested { get; set; }
     public ISvgEditorDialogService DialogService { get; set; } = new SvgEditorDialogService();
     public ISvgEditorFileDialogService FileDialogService { get; set; } = new SvgEditorFileDialogService();
@@ -347,12 +365,63 @@ public partial class SvgEditorWorkspace : UserControl
         SvgView.Wireframe = false;
         if (SvgView.SkSvg is { } initSvg)
             initSvg.IgnoreAttributes = DrawAttributes.None;
-        Session.WorkspaceTitle = "AvalonDraw";
+        UpdateTitle();
         UpdateStatusBar();
     }
 
     private TopLevel? GetOwnerTopLevel() => TopLevel.GetTopLevel(this);
     private Window? GetOwnerWindow() => GetOwnerTopLevel() as Window;
+
+    private Uri? TryResolveDocumentUri(string path)
+    {
+        if (string.IsNullOrWhiteSpace(path))
+            return null;
+
+        if (Uri.TryCreate(path, UriKind.Absolute, out var absoluteUri) && string.Equals(absoluteUri.Scheme, "avares", StringComparison.OrdinalIgnoreCase))
+            return AssetLoader.Exists(absoluteUri) ? absoluteUri : null;
+
+        if (Path.IsPathRooted(path))
+            return null;
+
+        var normalizedPath = path.TrimStart('/');
+        if (normalizedPath.Length == 0)
+            return null;
+
+        var seenAssemblyNames = new HashSet<string>(StringComparer.Ordinal);
+        var candidateAssemblies = new List<Assembly>();
+
+        void AddAssemblyCandidate(Assembly? assembly)
+        {
+            if (assembly is null || assembly.IsDynamic)
+                return;
+
+            var assemblyName = assembly.GetName().Name;
+            if (string.IsNullOrEmpty(assemblyName) || !seenAssemblyNames.Add(assemblyName))
+                return;
+
+            candidateAssemblies.Add(assembly);
+        }
+
+        AddAssemblyCandidate(ResourceAssembly);
+        AddAssemblyCandidate(GetType().Assembly);
+        AddAssemblyCandidate(Assembly.GetEntryAssembly());
+
+        foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
+            AddAssemblyCandidate(assembly);
+
+        foreach (var assembly in candidateAssemblies)
+        {
+            var assemblyName = assembly.GetName().Name;
+            if (string.IsNullOrEmpty(assemblyName))
+                continue;
+
+            var resourceUri = new Uri($"avares://{assemblyName}/{normalizedPath}");
+            if (AssetLoader.Exists(resourceUri))
+                return resourceUri;
+        }
+
+        return null;
+    }
 
     private IEnumerable<string> GetPatternReferences()
         => _patternService.Patterns
@@ -414,14 +483,12 @@ public partial class SvgEditorWorkspace : UserControl
 
     public void LoadDocument(string path)
     {
-        // try load from Avalonia resources first
-        var assemblyName = Assembly.GetEntryAssembly()?.GetName().Name ?? "AvalonDraw";
-        var uri = new Uri($"avares://{assemblyName}/{path}");
+        var uri = TryResolveDocumentUri(path);
 
         if (SvgView.SkSvg is { } skSvg)
             skSvg.OnDraw -= SvgView_OnDraw;
 
-        if (AssetLoader.Exists(uri))
+        if (uri is not null)
         {
             using var stream = AssetLoader.Open(uri);
             _document = _documentService.Open(stream);
@@ -2098,7 +2165,7 @@ public partial class SvgEditorWorkspace : UserControl
     private void UpdateTitle()
     {
         var name = string.IsNullOrEmpty(Session.CurrentFile) ? string.Empty : $" - {Path.GetFileName(Session.CurrentFile)}";
-        Session.WorkspaceTitle = $"AvalonDraw{name}";
+        Session.WorkspaceTitle = $"{WorkspaceTitlePrefix}{name}";
         WorkspaceTitleChanged?.Invoke(this, WorkspaceTitle);
     }
 

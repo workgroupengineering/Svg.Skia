@@ -11,6 +11,7 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        EditorWorkspace.WorkspaceTitlePrefix = "AvalonDraw";
         EditorWorkspace.DialogService = new SvgEditorDialogService();
         EditorWorkspace.FileDialogService = new SvgEditorFileDialogService();
         EditorWorkspace.PreviewRequested = ShowPreviewAsync;

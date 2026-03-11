@@ -10,7 +10,7 @@ public partial class SvgEditorSession : ISvgEditorSession
 {
     private SvgDocument? _document;
     private string? _currentFile;
-    private string _workspaceTitle = "AvalonDraw";
+    private string _workspaceTitle = "SVG Editor";
     private string _filterText = string.Empty;
     private string _propertyFilterText = string.Empty;
     private string? _selectedElementId;

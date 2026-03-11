@@ -97,6 +97,62 @@ public class SvgEditorWorkspaceTests
     }
 
     [AvaloniaFact]
+    public void SvgEditorWorkspace_LoadDocument_ResolvesAvaresResourceFromLoadedAssembly()
+    {
+        var workspace = new SvgEditorWorkspace();
+        var host = new Window
+        {
+            Width = 1024,
+            Height = 768,
+            Content = workspace
+        };
+
+        host.Show();
+        workspace.LoadDocument("Assets/embedded-test.svg");
+
+        Assert.NotNull(workspace.Document);
+        Assert.Equal("Assets/embedded-test.svg", workspace.CurrentFile);
+        Assert.NotEmpty(workspace.Session.Nodes);
+
+        host.Close();
+    }
+
+    [AvaloniaFact]
+    public void SvgEditorWorkspace_UsesHostProvidedTitlePrefix()
+    {
+        const string svg = "<svg width=\"24\" height=\"24\"><rect id=\"rect1\" x=\"1\" y=\"1\" width=\"10\" height=\"10\" fill=\"red\" /></svg>";
+        var path = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid():N}.svg");
+        File.WriteAllText(path, svg);
+
+        try
+        {
+            var workspace = new SvgEditorWorkspace
+            {
+                WorkspaceTitlePrefix = "HostApp"
+            };
+
+            var host = new Window
+            {
+                Width = 1024,
+                Height = 768,
+                Content = workspace
+            };
+
+            host.Show();
+            workspace.LoadDocument(path);
+
+            Assert.Equal($"HostApp - {Path.GetFileName(path)}", workspace.WorkspaceTitle);
+
+            host.Close();
+        }
+        finally
+        {
+            if (File.Exists(path))
+                File.Delete(path);
+        }
+    }
+
+    [AvaloniaFact]
     public async Task SvgEditorWorkspace_OpenDocumentAsync_UsesInjectedFileDialogService()
     {
         const string svg = "<svg width=\"16\" height=\"16\"><circle id=\"circle1\" cx=\"8\" cy=\"8\" r=\"4\" fill=\"red\" /></svg>";
