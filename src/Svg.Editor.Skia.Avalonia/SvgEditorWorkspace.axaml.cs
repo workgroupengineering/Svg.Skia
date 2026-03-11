@@ -532,6 +532,7 @@ public partial class SvgEditorWorkspace : UserControl
         SvgView.PanY = 0;
         UpdateStatusBar();
 
+        ClearSelectionState();
         SaveExpandedNodes();
         Session.ClearHistory();
         Session.CurrentFile = path;
@@ -568,7 +569,6 @@ public partial class SvgEditorWorkspace : UserControl
             return;
 
         LoadDocument(file!);
-        ClearSelectionState();
         SvgView.InvalidateVisual();
     }
 
@@ -708,7 +708,6 @@ public partial class SvgEditorWorkspace : UserControl
             if (!string.IsNullOrEmpty(file))
             {
                 LoadDocument(file!);
-                ClearSelectionState();
                 SvgView.InvalidateVisual();
             }
         }

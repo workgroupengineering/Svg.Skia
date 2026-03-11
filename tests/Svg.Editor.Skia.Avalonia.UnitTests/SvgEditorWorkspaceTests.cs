@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -55,6 +56,57 @@ public class SvgEditorWorkspaceTests
         {
             if (File.Exists(path))
                 File.Delete(path);
+        }
+    }
+
+    [AvaloniaFact]
+    public void SvgEditorWorkspace_LoadDocument_ClearsPreviousSelectionState()
+    {
+        const string firstSvg = "<svg width=\"24\" height=\"24\"><rect id=\"rect1\" x=\"1\" y=\"1\" width=\"10\" height=\"10\" fill=\"red\" /></svg>";
+        const string secondSvg = "<svg width=\"24\" height=\"24\"><circle id=\"circle1\" cx=\"8\" cy=\"8\" r=\"4\" fill=\"blue\" /></svg>";
+        var firstPath = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid():N}-first.svg");
+        var secondPath = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid():N}-second.svg");
+        File.WriteAllText(firstPath, firstSvg);
+        File.WriteAllText(secondPath, secondSvg);
+
+        try
+        {
+            var workspace = new SvgEditorWorkspace();
+            var host = new Window
+            {
+                Width = 1024,
+                Height = 768,
+                Content = workspace
+            };
+
+            host.Show();
+            workspace.LoadDocument(firstPath);
+
+            var previousElement = Assert.IsType<SvgRectangle>(workspace.Document!.Children.OfType<SvgRectangle>().Single());
+            SetPrivateField(workspace, "_selectedSvgElement", previousElement);
+            SetPrivateField(workspace, "_selectedElement", previousElement);
+            var multiSelected = GetPrivateField<IList>(workspace, "_multiSelected");
+            multiSelected.Add(previousElement);
+            workspace.Session.SetSelectedElementIds(new[] { previousElement.ID });
+
+            workspace.LoadDocument(secondPath);
+
+            Assert.Null(GetPrivateField<SvgElement?>(workspace, "_selectedSvgElement"));
+            Assert.Null(GetPrivateField<SvgVisualElement?>(workspace, "_selectedElement"));
+            Assert.Empty(GetPrivateField<IList>(workspace, "_multiSelected").Cast<object>());
+            Assert.Empty(workspace.Session.SelectedElementIds);
+            Assert.NotNull(workspace.Document);
+            Assert.Contains(workspace.Document!.Children.OfType<SvgCircle>(), element => element.ID == "circle1");
+
+            host.Close();
+        }
+        finally
+        {
+            if (File.Exists(firstPath))
+                File.Delete(firstPath);
+
+            if (File.Exists(secondPath))
+                File.Delete(secondPath);
         }
     }
 
@@ -217,5 +269,20 @@ public class SvgEditorWorkspaceTests
         var method = typeof(SvgEditorWorkspace).GetMethod(methodName, BindingFlags.Instance | BindingFlags.NonPublic);
         Assert.NotNull(method);
         method!.Invoke(workspace, new object?[] { null, new RoutedEventArgs() });
+    }
+
+    private static T GetPrivateField<T>(object instance, string fieldName)
+    {
+        var field = instance.GetType().GetField(fieldName, BindingFlags.Instance | BindingFlags.NonPublic);
+        Assert.NotNull(field);
+        var value = field!.GetValue(instance);
+        return value is null ? default! : (T)value;
+    }
+
+    private static void SetPrivateField<T>(object instance, string fieldName, T value)
+    {
+        var field = instance.GetType().GetField(fieldName, BindingFlags.Instance | BindingFlags.NonPublic);
+        Assert.NotNull(field);
+        field!.SetValue(instance, value);
     }
 }
