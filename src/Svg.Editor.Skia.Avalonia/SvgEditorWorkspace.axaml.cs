@@ -603,7 +603,10 @@ public partial class SvgEditorWorkspace : UserControl
         byte[] data;
         try
         {
-            data = File.ReadAllBytes(file);
+            using var stream = File.OpenRead(file);
+            using var memory = new MemoryStream();
+            await stream.CopyToAsync(memory);
+            data = memory.ToArray();
         }
         catch
         {
