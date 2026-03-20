@@ -1,0 +1,30 @@
+<Project Sdk="Uno.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Library</OutputType>
+    <TargetFrameworks>net10.0;net10.0-windows10.0.26100</TargetFrameworks>
+    <UnoSingleProject>true</UnoSingleProject>
+    <GenerateLibraryLayout>true</GenerateLibraryLayout>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <NoWarn>CS1591</NoWarn>
+    <IsPackable>true</IsPackable>
+    <RootNamespace>Uno.Svg.Skia</RootNamespace>
+    <PackageId>Svg.Controls.Skia.Uno</PackageId>
+    <Description>SVG controls for Uno Platform backed by Svg.Skia and SKCanvasElement.</Description>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageTags>svg;skia;skiasharp;uno;winui;xaml;control;rendering</PackageTags>
+    <UnoFeatures>
+      SkiaRenderer;
+    </UnoFeatures>
+  </PropertyGroup>
+
+  <Import Project="..\..\build\SourceLink.props" />
+  <Import Project="..\..\build\SkiaSharp.v3.props" />
+
+  <ItemGroup>
+    <ProjectReference Include="..\Svg.Skia\Svg.Skia.csproj" />
+  </ItemGroup>
+
+</Project>
