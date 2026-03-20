@@ -17,10 +17,11 @@ Packaged tools such as `Svg.Skia.Converter` and `svgc` stay documented under [Sa
 | `Svg.Custom` | You want the underlying SVG DOM and parser that the renderer consumes. | [Svg.Custom](svg-custom) |
 | `ShimSkiaSharp` | You need a cloneable command-model equivalent of key SkiaSharp drawing primitives. | [ShimSkiaSharp](shim-skiasharp) |
 
-## Avalonia UI packages
+## UI packages
 
 | Package | Start here when | Guide |
 | --- | --- | --- |
+| `Svg.Controls.Skia.Uno` | You want Uno Platform SVG controls backed by `Svg.Skia` and the live Skia canvas. | [Svg.Controls.Skia.Uno](svg-controls-skia-uno) |
 | `Svg.Controls.Skia.Avalonia` | You want the richest Avalonia SVG integration, backed by `Svg.Skia` and real `SkiaSharp.SKPicture` output. | [Svg.Controls.Skia.Avalonia](svg-controls-skia-avalonia) |
 | `Svg.Controls.Avalonia` | You want the same high-level Avalonia SVG concepts but rendered through the Avalonia drawing stack. | [Svg.Controls.Avalonia](svg-controls-avalonia) |
 | `Skia.Controls.Avalonia` | You want reusable Avalonia controls and `IImage` wrappers for raw SkiaSharp content, with or without SVG. | [Skia.Controls.Avalonia](skia-controls-avalonia) |
@@ -45,6 +46,7 @@ Packaged tools such as `Svg.Skia.Converter` and `svgc` stay documented under [Sa
 ## Choosing quickly
 
 - Choose `Svg.Skia` for direct runtime rendering and export.
+- Choose `Svg.Controls.Skia.Uno` for Uno Platform usage on the Skia-backed path.
 - Choose `Svg.Controls.Skia.Avalonia` for interactive Avalonia usage on the Skia-backed path.
 - Choose `Svg.Editor.Skia.Avalonia` when you want a reusable SVG editor instead of only a viewer/control package.
 - Choose `Svg.Editor.Avalonia`, `Svg.Editor.Skia`, `Svg.Editor.Svg`, and `Svg.Editor.Core` when you need only parts of that editor stack.

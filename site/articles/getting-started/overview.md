@@ -12,6 +12,7 @@ Svg.Skia is a repository, not just a single package. The main entry points are:
 | `Svg.Model` | You need the intermediate picture-recording model or SVG-related helper types. | `ShimSkiaSharp` command model | [Svg.Model](../packages/svg-model) |
 | `Svg.Custom` | You want the underlying SVG DOM used by the renderer. | `SvgDocument`, `SvgElement`, parser APIs | [Svg.Custom](../packages/svg-custom) |
 | `ShimSkiaSharp` | You want the cloneable drawing-command model directly. | `SKPicture`, `SKCanvas`, `SKPath`, `SKPaint` | [ShimSkiaSharp](../packages/shim-skiasharp) |
+| `Svg.Controls.Skia.Uno` | You want Uno controls that render through the Skia-backed pipeline. | `Svg`, `SvgSource`, hit testing, zoom/pan | [Svg.Controls.Skia.Uno](../packages/svg-controls-skia-uno) |
 | `Svg.Controls.Skia.Avalonia` | You want Avalonia controls that render through the Skia-backed pipeline. | `Svg`, `SvgImage`, `SvgSource`, `SvgResource` | [Svg.Controls.Skia.Avalonia](../packages/svg-controls-skia-avalonia) |
 | `Svg.Controls.Avalonia` | You want Avalonia controls without depending on the Skia-backed Avalonia renderer path. | `Svg`, `SvgImage`, `SvgSource`, `SvgResource` | [Svg.Controls.Avalonia](../packages/svg-controls-avalonia) |
 | `Skia.Controls.Avalonia` | You need general-purpose `SKCanvas`, `SKPicture`, `SKBitmap`, or `SKPath` controls in Avalonia. | `SKCanvasControl`, `SKPictureImage`, and related controls | [Skia.Controls.Avalonia](../packages/skia-controls-avalonia) |
@@ -32,6 +33,10 @@ Start with `Svg.Skia` if your application already uses SkiaSharp or needs direct
 Start with `Svg.Controls.Skia.Avalonia` when the app is already on Avalonia plus Skia.
 
 Choose `Svg.Controls.Avalonia` when you want the same SVG concepts exposed through the Avalonia drawing stack instead.
+
+### Uno application
+
+Start with `Svg.Controls.Skia.Uno` when the app is on Uno Platform and you want direct `SKCanvasElement` rendering plus async asset loading, hit testing, and viewport controls.
 
 ### Embedded editor
 

@@ -11,6 +11,7 @@ The generated API reference under `/api` is built from these projects:
 - `../src/Svg.Custom/Svg.Custom.csproj`
 - `../src/Svg.Controls.Avalonia/Svg.Controls.Avalonia.csproj`
 - `../src/Svg.Controls.Skia.Avalonia/Svg.Controls.Skia.Avalonia.csproj`
+- `../src/Svg.Controls.Skia.Uno/Svg.Controls.Skia.Uno.csproj`
 - `../src/Skia.Controls.Avalonia/Skia.Controls.Avalonia.csproj`
 - `../src/Svg.Editor.Core/Svg.Editor.Core.csproj`
 - `../src/Svg.Editor.Svg/Svg.Editor.Svg.csproj`
@@ -27,6 +28,8 @@ Current API settings:
 - configuration: `Release`
 - target framework override: `netstandard2.0`
 - output path: `/api`
+
+The Uno control project uses a per-project override of `TargetFramework=net10.0` because it does not target `netstandard2.0`.
 
 ## Why `netstandard2.0`
 
@@ -47,6 +50,6 @@ Using `netstandard2.0` as the documentation build target keeps the API site alig
 To keep the authored docs and generated API aligned:
 
 1. Add the project to `site/config.scriban` under `api.dotnet.projects`.
-2. Add any new Avalonia or external assembly xrefs under `api.dotnet.external_apis` if the public API links out to assemblies that are not already covered.
+2. Add any new Avalonia, Uno, or external assembly xrefs under `api.dotnet.external_apis` if the public API links out to assemblies that are not already covered.
 3. Update [Packages and Namespaces](packages-and-namespaces) and the package article under `site/articles/packages/`.
 4. Rebuild the site with `./build-docs.sh`.
