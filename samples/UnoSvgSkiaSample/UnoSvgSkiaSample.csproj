@@ -15,6 +15,7 @@
     <UnoFeatures>
       SkiaRenderer;
     </UnoFeatures>
+    <IsPackable>False</IsPackable>
   </PropertyGroup>
 
   <ItemGroup>

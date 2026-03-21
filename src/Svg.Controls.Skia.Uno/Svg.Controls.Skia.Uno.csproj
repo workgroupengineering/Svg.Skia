@@ -12,11 +12,16 @@
     <RootNamespace>Uno.Svg.Skia</RootNamespace>
     <PackageId>Svg.Controls.Skia.Uno</PackageId>
     <Description>SVG controls for Uno Platform backed by Svg.Skia and SKCanvasElement.</Description>
-    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
     <PackageTags>svg;skia;skiasharp;uno;winui;xaml;control;rendering</PackageTags>
     <UnoFeatures>
       SkiaRenderer;
     </UnoFeatures>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <VersionPrefix>$(UnoVersionPrefix)</VersionPrefix>
+    <VersionSuffix>$(UnoVersionSuffix)</VersionSuffix>
   </PropertyGroup>
 
   <Import Project="..\..\build\SourceLink.props" />
