@@ -4,7 +4,15 @@ title: "Overview"
 
 # Overview
 
-## Two SVG stacks
+## UI SVG stacks
+
+### `Uno.Svg.Skia`
+
+This package wraps the `Svg.Skia` runtime renderer for Uno Platform. Use it when:
+
+- you want Uno XAML integration through `SKCanvasElement`,
+- you need `SvgSource` resources with async asset loading,
+- you want `HitTestElements(...)`, `TryGetPicturePoint(...)`, zoom, pan, wireframe, or filter toggles.
 
 ### `Avalonia.Svg.Skia`
 
@@ -24,7 +32,11 @@ This package exposes a similar surface but draws through Avalonia's own drawing 
 
 ## Shared concepts
 
-Both packages provide:
+The Uno and Avalonia Skia-backed packages all provide an `Svg` control and reusable `SvgSource`.
+
+The Avalonia packages additionally provide `SvgImage`, markup extensions, and brush helpers.
+
+The Avalonia packages provide:
 
 - `Svg` control,
 - `SvgImage`,
@@ -36,6 +48,7 @@ The namespaces differ:
 
 | Package | Namespace |
 | --- | --- |
+| `Svg.Controls.Skia.Uno` | `Uno.Svg.Skia` |
 | `Svg.Controls.Skia.Avalonia` | `Avalonia.Svg.Skia` |
 | `Svg.Controls.Avalonia` | `Avalonia.Svg` |
 
